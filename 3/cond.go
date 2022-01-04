@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"honnef.co/go/tools/structlayout"
 )
 
 func main() {
