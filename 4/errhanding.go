@@ -34,11 +34,12 @@ func main() {
 
 	done := make(chan interface{})
 	defer close(done)
-
-	urls := []string{"https://www.google.com","https://badhost"}
+	errCount := 0
+	urls := []string{"a","https://www.google.com","https://badhost","b","c"}
 	for r:= range checkStatu(done, urls...){
 		if  r.Error != nil{
 			fmt.Println(r.Error)
+			errCount++
 			continue
 		}
 		fmt.Printf("Response: %v\n", r.Response.Status)
