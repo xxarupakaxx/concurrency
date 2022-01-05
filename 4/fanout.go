@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"time"
 )
 
@@ -82,6 +83,12 @@ func main() {
 
 	randIntStream := toInt(done, repeatFn(done, rand))
 	fmt.Println("Prime:")
+	numFinders := runtime.NumCPU()
+	finders := make([]<-chan interface{},numFinders)
+	for i := 0; i < numFinders; i++ {
+		finders[i] = primeFinder(done,randIntStream)
+
+	}
 	for prime := range take(done, primeFinder(done, randIntStream), 10) {
 		fmt.Printf("\t%d\n", prime)
 
