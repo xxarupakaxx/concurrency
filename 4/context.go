@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -8,76 +9,84 @@ import (
 
 func main() {
 	var wg sync.WaitGroup
-	done := make(chan interface{})
-	defer close(done)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := printGreeting(done); err != nil {
-			fmt.Printf("%v", err)
-			return
+
+		if err := printGreeting(ctx); err != nil {
+			fmt.Println("failed to print greeting:", err)
 		}
 	}()
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := printFarewell(done); err != nil {
-			fmt.Printf("%v", err)
-			return
+
+		if err := printFarewell(ctx); err != nil {
+			fmt.Println("failed to print farewell:", err)
 		}
 	}()
-
 	wg.Wait()
 }
 
-func printFarewell(done chan interface{}) error {
-	farewell,err := genFarewell(done)
+func printFarewell(ctx context.Context) error {
+	farewell, err := genFarewell(ctx)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(farewell,"world")
+	fmt.Println(farewell)
 	return nil
 }
 
-func genGreeting(done <-chan interface{}) (string, error) {
-	switch locale,err := locale(done); {
-	case err != nil:
-		return "",err
-	case locale =="EN":
-		return "hello",nil
-	}
+func genFarewell(ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Hour)
+	defer cancel()
 
-	return "",fmt.Errorf("unsupported")
-}
-func genFarewell(done <-chan interface{})(string,error)  {
-	switch locale,err := locale(done); {
+	switch local, err := locale(ctx); {
 	case err != nil:
-		return "",err
-	case locale == "EN":
-		return "goodbye",nil
-	}
+		return "", err
+	case local == "EN":
+		return "heelo", nil
 
-	return "",fmt.Errorf("unsupprted")
+	}
+	return "", fmt.Errorf("unsupported")
 }
-func printGreeting(done chan interface{}) error {
-	greeting, err := genGreeting(done)
+
+func printGreeting(ctx context.Context) error {
+	greeting, err := genGreeting(ctx)
 	if err != nil {
 		return err
 	}
-	fmt.Println(greeting,"world")
+	fmt.Println(greeting)
 	return nil
 }
 
-func locale(done <-chan interface{}) (string, error) {
+func genGreeting(ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Hour)
+	defer cancel()
+	switch local, err := locale(ctx); {
+	case err != nil:
+		return "", err
+	case local == "EN":
+		return "goddbye", nil
+
+	}
+	return "", fmt.Errorf("unsupported")
+}
+
+func locale(ctx context.Context) (string, error) {
+	if deadline, ok := ctx.Deadline(); ok {
+		if deadline.Sub(time.Now().Add(1*time.Minute)) <= 0 {
+			return "", context.DeadlineExceeded
+		}
+	}
 	select {
-	case <-done:
-		return "", fmt.Errorf("canceled")
-	case <-time.After(1 * time.Second):
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case <-time.After(1 * time.Minute):
 
 	}
-
 	return "EN", nil
 }
