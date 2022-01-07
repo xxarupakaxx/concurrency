@@ -2,24 +2,34 @@ package main
 
 import (
 	"context"
+	"golang.org/x/time/rate"
 	"log"
 	"os"
 	"sync"
 )
 
 func Open() *APIConnection {
-	return &APIConnection{}
+	return &APIConnection{
+		rateLimiter: rate.NewLimiter(rate.Limit(1),1),
+	}
 }
 
 type APIConnection struct {
+	rateLimiter *rate.Limiter
 
 }
 
 func (a *APIConnection) ReadFile(ctx context.Context) error {
+	if err := a.rateLimiter.Wait(ctx); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (a *APIConnection) ResolveAddress(ctx context.Context) error {
+	if err := a.rateLimiter.Wait(ctx); err != nil {
+		return err
+	}
 	return nil
 }
 
