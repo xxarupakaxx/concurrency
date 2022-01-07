@@ -1,8 +1,13 @@
 package main
 
+import (
+	"fmt"
+	"time"
+)
+
 var or func (channels ...<-chan interface{}) <-chan interface{}
 
-or = func(channels ... <-chan interface{}) <-chan interface{}{
+or = func(channels ...<-chan interface{}) <-chan interface{}{
 	switch len(channels) {
 	case 0:
 		return nil
@@ -47,7 +52,7 @@ func main(){
 	start := time.Now()
 
 	<-or(
-		sig(2*time.hour),
+		sig(2*time.Hour),
 		sig(2*time.Minute),
 		sig(2*time.Second),
 		sig(3*time.Minute),
