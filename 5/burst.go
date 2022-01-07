@@ -5,10 +5,12 @@ import (
 	"golang.org/x/time/rate"
 	"log"
 	"os"
+	"sort"
 	"sync"
 )
 
 func Open() *APIConnection {
+
 	return &APIConnection{
 		rateLimiter: rate.NewLimiter(rate.Limit(1),1),
 	}
@@ -66,4 +68,37 @@ func main() {
 	}
 
 	wg.Wait()
+}
+
+type Ratelimiter interface {
+	Wait(ctx context.Context) error
+	Limit() rate.Limit
+}
+
+func MultiLimiter(limiters ...Ratelimiter) *multiLimiter {
+	byLimit := func(i,j int) bool {
+		return limiters[i].Limit() < limiters[j].Limit()
+	}
+	sort.Slice(limiters,byLimit)
+	return &multiLimiter{limiters: limiters}
+}
+
+type multiLimiter struct {
+	limiters []Ratelimiter
+}
+
+func (m *multiLimiter) Wait(ctx context.Context) error {
+	for _, limiter := range m.limiters {
+		if err := limiter.Wait(ctx); err!=nil{
+			return err
+		}
+	}
+
+	return nil
+}
+
+
+
+func (m *multiLimiter) Limit() rate.Limit {
+	return m.limiters[0].Limit()
 }
